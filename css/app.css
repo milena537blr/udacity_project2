@@ -103,7 +103,25 @@ h1 {
     display: inline-block;
 }
 
+.score-panel .stars li .active{
+    color: #FF193F;
+}
+
 .score-panel .restart {
     float: right;
     cursor: pointer;
+}
+
+/*
+ * Styles for the Message Panel
+ */
+
+.message-panel {
+    border-radius: 10px;
+    padding: 32px;
+    background-color: #ffffff;
+    display: flex;
+    max-width: 400px;
+    width: 100%;
+    justify-content: center;
 }

@@ -125,3 +125,27 @@ h1 {
     width: 100%;
     justify-content: center;
 }
+
+/*
+ * Animation
+ */
+
+@keyframes match {
+    from {background-color: #78e690;}
+    to {background-color: #02ccba;}
+}
+
+@keyframes not-match {
+    from {background-color: #ff4438;}
+    to {background-color: #2e3d49;}
+}
+
+.animation-match {
+    animation-name: match;
+    animation-duration: 4s;
+}
+
+.animation-notmatch {
+    animation-name: not-match;
+    animation-duration: 4s;
+}

@@ -8,8 +8,7 @@ let moveCounter = 0;
 let allCards = [];
 let deck = document.getElementById('deck');
 let messagePanel = document.getElementById('message-panel');
-const GRID = 16;
-const STEPS = 3;
+const STEPS = 300;
 const STARS = 3;
 const STAR_WEIGHT = STEPS / STARS;
 const SHAPES = ['fa-diamond', 'fa-paper-plane-o', 'fa-anchor', 'fa-bolt', 'fa-cube', 'fa-leaf',
@@ -19,6 +18,7 @@ const INITIAL_RATING = [true, true, true];
 let gameIsOver = false;
 let gameIsWon = false;
 let rating = [true, true, true];
+let timerId;
 
 
 /*
@@ -72,17 +72,24 @@ function addMove() {
 }
 
 function winnerMessage(moves) {
-    alert("You're a winner. Number of moves:" + moves);
+    stopTimer(timerId);
     deck.remove();
+    let message = document.createElement('div');
+    let starsCounter = (moves/STAR_WEIGHT).toFixed();
+    message.innerHTML = `<div>Congratulations! You Won!</div>
+                        <div>With ${moves} moves and ${starsCounter} Stars</div>
+                        <div>Woooooo!</div>`;
+    messagePanel.appendChild(message);
 }
 
 function overMessage(moves) {
-    alert("Game is over");
+    stopTimer(timerId);
     deck.remove();
     let message = document.createElement('div');
-    message.innerHTML = `<div>Congratulations! You Won!</div>
-                        <div>With ${moves} moves and ${moves/STAR_WEIGHT} Stars</div>
-                        <div>Woooooo!</div><div><button>Play again!</button></div>`;
+    let starsCounter = (moves/STAR_WEIGHT).toFixed();
+    message.innerHTML = `<div>Game is over!</div>
+                        <div>With ${moves} moves and ${starsCounter} Stars</div>`;
+
     messagePanel.appendChild(message);
 }
 
@@ -111,11 +118,14 @@ function setRating(ratingArr) {
 }
 
 function restart() {
+    stopTimer(timerId);
+    startTimer();
     moveCounter = 0;
     openedCards = [];
     setRating(INITIAL_RATING);
     setMoveCounter();
     generateGrid();
+
     allCards.forEach((card) => {
         card.addEventListener("click", clickCard);
     });
@@ -139,48 +149,60 @@ function generateGrid() {
 }
 
 function clickCard(event) {
-    displayCard(event);
-    addToOpenedCards(event.target);
-    if (openedCards.length === 2) {
-        openedCards.reduce((card1, card2) => {
-            if (matchCards(card1, card2)) {
-                lockCard(card1);
-                lockCard(card2);
-                openedCards = [];
-                matchedCards.push(card1);
-                matchedCards.push(card2);
-            } else {
-                setTimeout(() => {
+    if (!this.className.includes('match')) {
+        addToOpenedCards(this);
+        displayCard(event);
+        if (openedCards.length === 2) {
+            openedCards.reduce((card1, card2) => {
+                if (matchCards(card1, card2)) {
+                    lockCard(card1);
+                    lockCard(card2);
+                    card1.classList.add('animation-match');
+                    card2.classList.add('animation-match');
                     openedCards = [];
-                    hideCard(card1);
-                    hideCard(card2);
-                }, 150);
-            }
-            addMove();
-            setMoveCounter();
+                    matchedCards.push(card1);
+                    matchedCards.push(card2);
+                } else {
+                    card1.classList.add('animation-notmatch');
+                    card2.classList.add('animation-notmatch');
+                    setTimeout(() => {
+                        openedCards = [];
+                        card1.classList.remove('animation-notmatch');
+                        card2.classList.remove('animation-notmatch');
+                        hideCard(card1);
+                        hideCard(card2);
+                    }, 300);
+                }
+                addMove();
+                setMoveCounter();
 
-            if (matchedCards.length === GRID) {
-                gameIsWon = true;
-                winnerMessage(moveCounter);
-            } else if (moveCounter === STEPS) {
-                gameIsOver = true;
-                overMessage(moveCounter);
-            }
+                if (matchedCards.length === SHAPES.length) {
+                    gameIsWon = true;
+                    winnerMessage(moveCounter);
+                } else if (moveCounter === STEPS) {
+                    gameIsOver = true;
+                    overMessage(moveCounter);
+                }
 
-            rating = rating.map((star, index) => STEPS - moveCounter >= (index + 1) * STAR_WEIGHT);
+                rating = rating.map((star, index) => STEPS - moveCounter >= (index + 1) * STAR_WEIGHT);
 
-            setRating(rating);
-        });
+                setRating(rating);
+            });
+        }
     }
 }
 
 function startTimer() {
     let timerElement = document.getElementById('timer');
     let start = Date.now();
-    let timer = Date.now() - start;
-    timerElement.innerHTML = timer.toString();
-    //console.log(timer.toString());
-    setTimeout(console.log(timer.toString()), 100000000000);
+    timerId = setInterval(function run() {
+        let timer = Date.now() - start;
+        timerElement.innerHTML = (timer.toString() / 1000).toFixed();
+    }, 1000);
+}
+
+function stopTimer(timerId) {
+    clearInterval(timerId);
 }
 
 function startGame() {
@@ -200,13 +222,4 @@ restartButton.addEventListener('click', () => {
     restart();
 });
 
-/*
- * set up the event listener for a card. If a card is clicked:
- *  - display the card's symbol (put this functionality in another function that you call from this one)
- *  - add the card to a *list* of "open" cards (put this functionality in another function that you call from this one)
- *  - if the list already has another card, check to see if the two cards match
- *    + if the cards do match, lock the cards in the open position (put this functionality in another function that you call from this one)
- *    + if the cards do not match, remove the cards from the list and hide the card's symbol (put this functionality in another function that you call from this one)
- *    + increment the move counter and display it on the page (put this functionality in another function that you call from this one)
- *    + if all cards have matched, display a message with the final score (put this functionality in another function that you call from this one)
- */
+

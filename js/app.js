@@ -1,7 +1,3 @@
-/*
- * Create a list that holds all of your cards
- */
-
 let openedCards = [];
 let matchedCards = [];
 let moveCounter = 0;
@@ -20,15 +16,6 @@ let gameIsWon = false;
 let rating = [true, true, true];
 let timerId;
 
-
-/*
- * Display the cards on the page
- *   - shuffle the list of cards using the provided "shuffle" method below
- *   - loop through each card and create its HTML
- *   - add each card's HTML to the page
- */
-
-// Shuffle function from http://stackoverflow.com/a/2450976
 function shuffle(array) {
     let currentIndex = array.length, temporaryValue, randomIndex;
 
@@ -59,65 +46,82 @@ function matchCards(card1, card2) {
     return getCardSymbol(card1) === getCardSymbol(card2);
 }
 
-function lockCard(card) {
-    card.classList.add('match');
+function lockCard(...cards) {
+    cards.forEach((card) => {
+        card.classList.add('match', 'animation-match');
+        matchedCards.push(card);
+    });
 }
 
-function hideCard(card) {
-    card.classList.remove('open', 'show');
+function hideCard(...cards) {
+    cards.forEach((card) => {
+        card.classList.add('animation-notmatch');
+        setTimeout(() => {
+            card.classList.remove('open', 'show', 'animation-notmatch');
+        }, 300);
+    });
 }
 
 function addMove() {
     moveCounter++;
 }
 
-function winnerMessage(moves) {
+/* Messages */
+
+function createMessage(text) {
     stopTimer(timerId);
-    deck.remove();
+    deck.classList.add('hide');
     let message = document.createElement('div');
-    let starsCounter = (moves/STAR_WEIGHT).toFixed();
-    message.innerHTML = `<div>Congratulations! You Won!</div>
+    message.innerHTML = text;
+    messagePanel.appendChild(message);
+    messagePanel.classList.add('message-panel');
+    removeListener();
+}
+
+function winnerMessage(moves) {
+    let starsCounter = (moves / STAR_WEIGHT).toFixed();
+    let text = `<div>Congratulations! You Won!</div>
                         <div>With ${moves} moves and ${starsCounter} Stars</div>
                         <div>Woooooo!</div>`;
-    messagePanel.appendChild(message);
+    createMessage(text);
 }
 
 function overMessage(moves) {
-    stopTimer(timerId);
-    deck.remove();
-    let message = document.createElement('div');
-    let starsCounter = (moves/STAR_WEIGHT).toFixed();
-    message.innerHTML = `<div>Game is over!</div>
+    let starsCounter = (moves / STAR_WEIGHT).toFixed();
+    let text = `<div>Game is over!</div>
                         <div>With ${moves} moves and ${starsCounter} Stars</div>`;
-
-    messagePanel.appendChild(message);
+    createMessage(text);
 }
+
+/* Rating */
 
 function setMoveCounter() {
     document.getElementById('moveCounter').innerHTML = moveCounter.toString();
+}
+
+function createStar(status = '') {
+    let star = document.createElement('li');
+    star.innerHTML = `<i class='fa fa-star ${status}'></i>`;
+    return star;
 }
 
 function setRating(ratingArr) {
     let ratingFragment = document.createDocumentFragment();
 
     ratingArr.forEach((star) => {
-        let starActive = document.createElement('li');
-        starActive.innerHTML = "<i class='fa fa-star active'></i>";
-        let starInactive = document.createElement('li');
-        starInactive.innerHTML = "<i class='fa fa-star'></i>";
-
-        if (star) {
-            ratingFragment.appendChild(starActive);
-        } else {
-            ratingFragment.appendChild(starInactive);
-        }
+        let createdStar = (star) ? createStar('active') : createStar();
+        ratingFragment.appendChild(createdStar);
     });
 
     document.getElementById('rating').innerHTML = '';
     document.getElementById('rating').appendChild(ratingFragment);
 }
 
+/* Manage game */
+
 function restart() {
+    messagePanel.innerHTML = '';
+    messagePanel.classList.remove('message-panel');
     stopTimer(timerId);
     startTimer();
     moveCounter = 0;
@@ -131,7 +135,17 @@ function restart() {
     });
 }
 
+function startGame() {
+    startTimer();
+    setRating(rating);
+    generateGrid();
+    allCards.forEach((card) => {
+        card.addEventListener("click", clickCard);
+    });
+}
+
 function generateGrid() {
+    deck.classList.remove('hide');
     deck.innerHTML = '';
     let grid = document.createDocumentFragment();
     let shapes = shuffle(SHAPES);
@@ -154,27 +168,17 @@ function clickCard(event) {
         displayCard(event);
         if (openedCards.length === 2) {
             openedCards.reduce((card1, card2) => {
-                if (matchCards(card1, card2)) {
-                    lockCard(card1);
-                    lockCard(card2);
-                    card1.classList.add('animation-match');
-                    card2.classList.add('animation-match');
-                    openedCards = [];
-                    matchedCards.push(card1);
-                    matchedCards.push(card2);
-                } else {
-                    card1.classList.add('animation-notmatch');
-                    card2.classList.add('animation-notmatch');
-                    setTimeout(() => {
-                        openedCards = [];
-                        card1.classList.remove('animation-notmatch');
-                        card2.classList.remove('animation-notmatch');
-                        hideCard(card1);
-                        hideCard(card2);
-                    }, 300);
-                }
+                openedCards = [];
                 addMove();
                 setMoveCounter();
+                rating = rating.map((star, index) => STEPS - moveCounter >= (index + 1) * STAR_WEIGHT);
+                setRating(rating);
+
+                if (matchCards(card1, card2)) {
+                    lockCard(card1, card2);
+                } else {
+                    hideCard(card1, card2);
+                }
 
                 if (matchedCards.length === SHAPES.length) {
                     gameIsWon = true;
@@ -183,14 +187,12 @@ function clickCard(event) {
                     gameIsOver = true;
                     overMessage(moveCounter);
                 }
-
-                rating = rating.map((star, index) => STEPS - moveCounter >= (index + 1) * STAR_WEIGHT);
-
-                setRating(rating);
             });
         }
     }
 }
+
+/* Timer */
 
 function startTimer() {
     let timerElement = document.getElementById('timer');
@@ -205,21 +207,20 @@ function stopTimer(timerId) {
     clearInterval(timerId);
 }
 
-function startGame() {
-    startTimer();
-    setRating(rating);
-    generateGrid();
+function removeListener() {
     allCards.forEach((card) => {
         card.addEventListener("click", clickCard);
     });
 }
 
-startGame();
+window.addEventListener('DOMContentLoaded', () => {
+    startGame();
 
-let restartButton = document.querySelector('.restart');
-
-restartButton.addEventListener('click', () => {
-    restart();
+    document.querySelector('.restart').addEventListener('click', () => {
+        restart();
+    });
 });
+
+
 
 

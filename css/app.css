@@ -112,6 +112,10 @@ h1 {
     cursor: pointer;
 }
 
+.hide {
+    display: none;
+}
+
 /*
  * Styles for the Message Panel
  */
